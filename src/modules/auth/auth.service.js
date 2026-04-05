@@ -4,6 +4,7 @@ const prisma = require("../../config/db");
 const { AppError } = require("../../utils/errors");
 
 class AuthService {
+  // Registration hashes the password and returns a safe user payload plus JWT.
   async register(data) {
     const exists = await prisma.user.findUnique({ where: { email: data.email } });
     if (exists) {
@@ -19,6 +20,7 @@ class AuthService {
     return { user, token: this.#generateToken(user) };
   }
 
+  // Login checks the stored hash, then returns the same safe user/token shape.
   async login(email, password) {
     const user = await prisma.user.findFirst({ where: { email, isActive: true, deletedAt: null } });
     if (!user || !(await bcrypt.compare(password, user.password))) {
@@ -29,6 +31,7 @@ class AuthService {
     return { user: safe, token: this.#generateToken(user) };
   }
 
+  // Keep token generation private so callers cannot bypass the auth payload rules.
   #generateToken(user) {
     return jwt.sign(
       { id: user.id, email: user.email, role: user.role },

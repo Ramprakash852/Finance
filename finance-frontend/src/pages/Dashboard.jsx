@@ -1,7 +1,3 @@
-// Dashboard page: fetches summary data and renders stats + charts.
-// Uses React Query for caching. Recharts for bar (monthly) and pie (categories).
-// All amounts passed through formatCurrency helper.
- 
 import { useQuery } from '@tanstack/react-query';
 import { getSummary } from '../api/dashboard.js';
 import StatCard from '../components/StatCard.jsx';
@@ -26,7 +22,6 @@ export default function Dashboard() {
   const { summary, categoryBreakdown, recentActivity, monthlyTrends } = data.data;
   const net = Number(summary.netBalance);
  
-  // Build monthly chart data: merge INCOME + EXPENSE rows by month
   const monthMap = {};
   (monthlyTrends || []).forEach(row => {
     if (!monthMap[row.month]) monthMap[row.month] = { month: formatMonth(row.month) };
@@ -34,7 +29,7 @@ export default function Dashboard() {
   });
   const monthData = Object.values(monthMap).slice(-6);
  
-  // Pie data: top 7 categories by total
+  // Limit the pie chart to the largest categories so the legend stays readable.
   const pieData = (categoryBreakdown || []).slice(0, 7).map(c => ({
     name: c.category,
     value: Number(c.total),

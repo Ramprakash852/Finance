@@ -6,6 +6,7 @@ const { PERMISSIONS } = require("../../config/constants");
 const ctrl = require("./transaction.controller");
 
 const router = Router();
+// Every transaction route requires authentication before permission checks.
 router.use(authenticate);
 
 router.get("/", authorize(PERMISSIONS.TRANSACTIONS_READ), validate(filterSchema, "query"), ctrl.getTransactions);

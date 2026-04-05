@@ -4,6 +4,7 @@ const prisma = require("../config/db");
 const authenticate = async (req, res, next) => {
   try {
     const auth = req.headers.authorization;
+    // Require an explicit Bearer token so we fail closed on malformed auth headers.
     if (!auth || !auth.startsWith("Bearer ")) {
       return res.status(401).json({ success: false, error: "Authentication required" });
     }
@@ -11,6 +12,7 @@ const authenticate = async (req, res, next) => {
     const token = auth.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+    // Reject tokens for inactive or soft-deleted users even if the JWT is valid.
     const user = await prisma.user.findFirst({
       where: { id: decoded.id, isActive: true, deletedAt: null },
     });

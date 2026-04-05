@@ -8,6 +8,7 @@ const { sendSuccess } = require("../../utils/response");
 const { AppError } = require("../../utils/errors");
 
 const router = Router();
+// Users routes are restricted to authenticated users with read access; write ops add their own checks.
 router.use(authenticate, authorize(PERMISSIONS.USERS_READ));
 
 router.get("/", async (req, res, next) => {
@@ -24,6 +25,7 @@ router.get("/", async (req, res, next) => {
 
 router.patch("/:id", authorize(PERMISSIONS.USERS_WRITE), validate(updateUserSchema), async (req, res, next) => {
   try {
+    // Keep updates soft-delete aware so admin tooling never revives removed users by accident.
     const user = await prisma.user.findFirst({ where: { id: req.params.id, deletedAt: null } });
     if (!user) {
       throw new AppError("User not found", 404);
@@ -42,6 +44,7 @@ router.patch("/:id", authorize(PERMISSIONS.USERS_WRITE), validate(updateUserSche
 
 router.delete("/:id", authorize(PERMISSIONS.USERS_DELETE), async (req, res, next) => {
   try {
+    // Soft delete preserves audit/history while removing the user from active lookups.
     const user = await prisma.user.findFirst({ where: { id: req.params.id, deletedAt: null } });
     if (!user) {
       throw new AppError("User not found", 404);

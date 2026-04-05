@@ -5,6 +5,7 @@ const { validate, registerSchema, loginSchema } = require("../../utils/validator
 
 const router = Router();
 
+// Public auth endpoints for registration, login, and current-user lookup.
 router.post("/register", validate(registerSchema), register);
 router.post("/login", validate(loginSchema), login);
 router.get("/me", authenticate, getMe);

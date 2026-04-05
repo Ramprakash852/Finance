@@ -8,11 +8,13 @@ const authorize = (...requiredPermissions) => (req, res, next) => {
     return res.status(401).json({ success: false, error: "Not authenticated" });
   }
 
+  // An empty permission list means the route is auth-only.
   if (requiredPermissions.length === 0) {
     return next();
   }
 
   const userPermissions = ROLE_PERMISSIONS[req.user.role] || [];
+  // Require every requested permission so multi-action routes stay conservative.
   const allowed = requiredPermissions.every((permission) =>
     userPermissions.includes(permission)
   );

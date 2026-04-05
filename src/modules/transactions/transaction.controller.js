@@ -3,6 +3,7 @@ const { sendSuccess } = require("../../utils/response");
 
 const svc = new TransactionService();
 
+// Wrap async handlers so errors always reach Express's error middleware.
 const wrap = (fn) => async (req, res, next) => {
   try {
     await fn(req, res);

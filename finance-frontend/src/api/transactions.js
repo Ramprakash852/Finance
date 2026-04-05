@@ -1,9 +1,6 @@
 import api from './axios.js';
  
-// API functions for transactions:
 // - getAll with query params
-// - create, update, delete
-// - return response.data
 export const getAll = (filters) =>
   api.get('/transactions', { params: filters }).then(r => r.data);
  

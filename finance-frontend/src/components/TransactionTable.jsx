@@ -1,7 +1,3 @@
-// Reusable transaction table component.
-// Props: records (array), isAdmin (bool), onDelete (fn)
-// Handles empty state, type badge colors, currency formatting.
-
 import { formatCurrency } from '../utils/formatters.js';
 import { Trash2 } from 'lucide-react';
 

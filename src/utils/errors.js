@@ -14,6 +14,7 @@ const toAppError = (error) => {
 		return error;
 	}
 
+	// Wrap unknown errors so the handler can return a consistent operational shape.
 	const wrapped = new AppError("Internal Server Error", 500, false);
 	wrapped.originalError = error;
 	return wrapped;

@@ -1,7 +1,3 @@
-// Login page. Uses React Hook Form for validation.
-// On success: store token + user in authStore, navigate to /dashboard.
-// Show toast on error. Quick login buttons for demo accounts.
- 
 import { useForm } from 'react-hook-form';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../store/authStore.jsx';
@@ -25,6 +21,7 @@ export default function Login() {
   }
  
   function quickLogin(email, password) {
+    // Demo logins keep the seeded accounts easy to test during reviews.
     setValue('email', email);
     setValue('password', password);
     handleSubmit(onSubmit)();

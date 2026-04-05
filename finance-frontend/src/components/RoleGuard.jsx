@@ -1,6 +1,3 @@
-// RoleGuard wraps page content that should only show for specific roles.
-// Renders children if user has one of the allowed roles, otherwise shows 403.
- 
 import { useAuth } from '../store/authStore.jsx';
  
 export default function RoleGuard({ roles, children }) {

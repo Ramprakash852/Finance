@@ -3,6 +3,7 @@ const { sendSuccess } = require("../../utils/response");
 
 const svc = new AuthService();
 
+// Controller layer keeps HTTP response formatting separate from auth logic.
 const register = async (req, res, next) => {
   try {
     const data = await svc.register(req.body);

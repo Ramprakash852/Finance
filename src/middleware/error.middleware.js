@@ -18,6 +18,7 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
+  // Map common Prisma errors to stable API responses instead of leaking database internals.
   if (err && err.code === "P2002") {
     return res.status(409).json({
       success: false,
@@ -26,6 +27,7 @@ const errorHandler = (err, req, res, next) => {
   }
 
   if (err && err.code === "P2025") {
+    // P2025 means the record was not found for the requested mutation.
     return res.status(404).json({
       success: false,
       error: "Record not found",

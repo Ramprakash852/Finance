@@ -1,6 +1,3 @@
-// Users page — ADMIN only. Shows user cards with role change dropdown
-// and activate/deactivate toggle. React Query handles loading + cache.
- 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getUsers, updateUser } from '../api/users.js';
 import RoleGuard from '../components/RoleGuard.jsx';
@@ -14,14 +11,14 @@ const ROLE_STYLES = {
 };
  
 export default function Users() {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ['users'], queryFn: getUsers });
  
   async function changeRole(id, role) {
     try {
       await updateUser(id, { role });
       toast.success('Role updated to ' + role);
-      qc.invalidateQueries(['users']);
+      queryClient.invalidateQueries(['users']);
     } catch (e) { toast.error(e.response?.data?.error || 'Failed'); }
   }
  
@@ -29,7 +26,7 @@ export default function Users() {
     try {
       await updateUser(id, { isActive });
       toast.success(isActive ? 'User activated' : 'User deactivated');
-      qc.invalidateQueries(['users']);
+      queryClient.invalidateQueries(['users']);
     } catch (e) { toast.error(e.response?.data?.error || 'Failed'); }
   }
  

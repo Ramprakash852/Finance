@@ -2,18 +2,21 @@ const { Prisma } = require("@prisma/client");
 const prisma = require("../../config/db");
 
 class DashboardService {
+  // This service combines Prisma aggregations and one raw SQL query for monthly rollups.
   async getSummary({ startDate, endDate } = {}) {
     const parsedStartDate = startDate ? new Date(startDate) : null;
     const parsedEndDate = endDate ? new Date(endDate) : null;
 
     const where = {
       deletedAt: null,
+      // Apply optional date filtering only when the client supplies bounds.
       ...((startDate||endDate) && { date: {
         ...(parsedStartDate && { gte: parsedStartDate }),
         ...(parsedEndDate && { lte: parsedEndDate }),
       }}),
     };
 
+    // Raw SQL is used here because Prisma does not expose the exact month bucketing we need.
     let whereClause = Prisma.sql`"deletedAt" IS NULL`;
 
     if (parsedStartDate) {

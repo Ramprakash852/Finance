@@ -1,7 +1,3 @@
-// Modal for creating a new transaction.
-// Props: isOpen, onClose, onSuccess
-// Uses React Hook Form. On success calls onSuccess() to refresh the list.
- 
 import { useForm } from 'react-hook-form';
 import { create } from '../api/transactions.js';
 import toast from 'react-hot-toast';
@@ -16,6 +12,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess }) {
  
   async function onSubmit(data) {
     try {
+      // Convert to API shape here so the form can stay UI-friendly.
       await create({ ...data, amount: parseFloat(data.amount), date: new Date(data.date).toISOString() });
       toast.success('Transaction created');
       reset();

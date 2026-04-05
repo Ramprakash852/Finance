@@ -1,7 +1,3 @@
-// Transactions page with pagination + filters + role-gated actions.
-// ANALYST can view only. ADMIN can create and delete.
-// React Query manages data fetching and cache invalidation.
- 
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getAll, remove } from '../api/transactions.js';
@@ -15,7 +11,7 @@ import { Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
  
 export default function Transactions() {
   const { user } = useAuth();
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
   const [filters, setFilters] = useState({ page: 1, limit: 10, type: '', category: '' });
   const [showModal, setShowModal] = useState(false);
   const isAdmin = user?.role === 'ADMIN';
@@ -35,7 +31,7 @@ export default function Transactions() {
     try {
       await remove(id);
       toast.success('Deleted');
-      qc.invalidateQueries(['transactions']);
+      queryClient.invalidateQueries(['transactions']);
     } catch (e) {
       toast.error(e.response?.data?.error || 'Failed to delete');
     }
@@ -112,7 +108,7 @@ export default function Transactions() {
         </div>
  
         <TransactionModal isOpen={showModal} onClose={() => setShowModal(false)}
-          onSuccess={() => qc.invalidateQueries(['transactions'])} />
+          onSuccess={() => queryClient.invalidateQueries(['transactions'])} />
       </div>
     </RoleGuard>
   );

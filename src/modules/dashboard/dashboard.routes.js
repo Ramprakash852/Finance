@@ -8,6 +8,7 @@ const { sendSuccess } = require("../../utils/response");
 const router = Router();
 const svc = new DashboardService();
 
+// Dashboard summary is protected by auth + dashboard read permission.
 router.get("/summary", authenticate, authorize(PERMISSIONS.DASHBOARD_READ), async (req, res, next) => {
   try {
     const data = await svc.getSummary(req.query);

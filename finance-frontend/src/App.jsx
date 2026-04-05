@@ -1,7 +1,3 @@
-// App root: React Router setup + React Query provider + Toaster.
-// ProtectedRoute wraps all authenticated pages.
-// AuthProvider wraps everything so all components can read auth state.
- 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
@@ -14,13 +10,14 @@ import Dashboard from './pages/Dashboard.jsx';
 import Transactions from './pages/Transactions.jsx';
 import Users from './pages/Users.jsx';
  
-const qc = new QueryClient({
+// Keep query retries low and cache fresh enough for interactive finance screens.
+const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
 });
  
 export default function App() {
   return (
-    <QueryClientProvider client={qc}>
+    <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
           <Routes>

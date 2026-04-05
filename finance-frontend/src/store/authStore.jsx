@@ -2,7 +2,6 @@ import { createContext, useContext, useState, useCallback } from 'react';
 
 const AuthContext = createContext(null);
 
-// Auth store using React Context + localStorage.
 // Provides { user, token, login, logout } to the whole app.
 // On mount, reads token + user from localStorage to persist login across refreshes.
 export function AuthProvider({ children }) {

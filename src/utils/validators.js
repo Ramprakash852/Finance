@@ -39,6 +39,7 @@ const updateUserSchema = z.object({
 const validate = (schema, source = "body") => (req, res, next) => {
   const result = schema.safeParse(req[source]);
   if (!result.success) {
+    // Normalize Zod issues so clients get a compact field/message structure.
     return res.status(400).json({
       success: false,
       error: "Validation failed",

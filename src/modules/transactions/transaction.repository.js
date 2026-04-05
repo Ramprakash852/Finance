@@ -3,6 +3,7 @@ const prisma = require("../../config/db");
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
 
+// Coerce pagination inputs into bounded positive integers.
 const toPositiveInt = (value, fallback) => {
   const parsed = Number(value);
 
@@ -29,7 +30,7 @@ class TransactionRepository {
       ...(category && { category: { contains: category, mode: "insensitive" } }),
       ...((startDate || endDate) && {
         date: {
-        ...(startDate && { gte: new Date(startDate) }),
+          ...(startDate && { gte: new Date(startDate) }),
           ...(endDate && { lte: new Date(endDate) }),
         },
       }),
@@ -68,6 +69,7 @@ class TransactionRepository {
   }
 
   async update(id, data) {
+    // Re-check existence here so the repository can return null for missing rows.
     const existing = await prisma.transaction.findFirst({
       where: { id, deletedAt: null },
       select: { id: true },
@@ -81,6 +83,7 @@ class TransactionRepository {
   }
 
   async softDelete(id) {
+    // Soft delete keeps the record for reporting while removing it from normal queries.
     const existing = await prisma.transaction.findFirst({
       where: { id, deletedAt: null },
       select: { id: true },

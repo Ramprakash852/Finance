@@ -11,6 +11,7 @@ const ALL_NAV = [
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  // Filter navigation at the view layer so roles only see routes they can access.
   const nav = ALL_NAV.filter(n => n.roles.includes(user?.role));
  
   function handleLogout() {

@@ -1,6 +1,5 @@
 import api from './axios.js';
  
-// Auth API functions: register, login, getMe.
 // All functions return the data field from the response directly.
 export const register = (data) =>
   api.post('/auth/register', data).then(r => r.data);
