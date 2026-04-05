@@ -434,7 +434,7 @@ If this were moving toward production:
 
 ---
 
-## Notes on Approach
+## Key Engineering Decisions
 
 I treated this assignment the same way I would approach a real task on a team: understand the domain first, make deliberate decisions, document the reasoning, and build something I could confidently hand off to another engineer.
 
@@ -522,7 +522,7 @@ If this were moving toward production:
 
 ---
 
-## Notes on Approach
+## Key Engineering Decisions
 
 I treated this assignment the same way I would approach a real task on a team: understand the domain first, make deliberate decisions, document the reasoning, and build something I could confidently hand off to another engineer.
 
