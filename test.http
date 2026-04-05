@@ -1,0 +1,94 @@
+@baseUrl = http://localhost:3000
+@adminEmail = admin@finance.com
+@adminPassword = Password123!
+
+### Health Check
+GET {{baseUrl}}/health
+
+### Register Admin (run once; may return duplicate after first run)
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+	"email": "{{adminEmail}}",
+	"password": "{{adminPassword}}",
+	"name": "Admin User",
+	"role": "ADMIN"
+}
+
+### Login Admin
+# @name loginAdmin
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+	"email": "{{adminEmail}}",
+	"password": "{{adminPassword}}"
+}
+
+### Get Current User
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer {{loginAdmin.response.body.data.token}}
+
+### Create Transaction
+# @name createTx
+POST {{baseUrl}}/api/transactions
+Authorization: Bearer {{loginAdmin.response.body.data.token}}
+Content-Type: application/json
+
+{
+	"amount": 5000,
+	"type": "INCOME",
+	"category": "Salary",
+	"date": "2024-06-01T00:00:00Z",
+	"notes": "June salary"
+}
+
+### List Transactions (with filters)
+GET {{baseUrl}}/api/transactions?type=INCOME&page=1&limit=5
+Authorization: Bearer {{loginAdmin.response.body.data.token}}
+
+### Get Transaction By Id
+GET {{baseUrl}}/api/transactions/{{createTx.response.body.data.id}}
+Authorization: Bearer {{loginAdmin.response.body.data.token}}
+
+### Update Transaction
+PATCH {{baseUrl}}/api/transactions/{{createTx.response.body.data.id}}
+Authorization: Bearer {{loginAdmin.response.body.data.token}}
+Content-Type: application/json
+
+{
+	"notes": "Updated note from API test"
+}
+
+### Dashboard Summary
+GET {{baseUrl}}/api/dashboard/summary
+Authorization: Bearer {{loginAdmin.response.body.data.token}}
+
+### Dashboard Summary (date range)
+GET {{baseUrl}}/api/dashboard/summary?startDate=2024-01-01T00:00:00.000Z&endDate=2026-12-31T23:59:59.999Z
+Authorization: Bearer {{loginAdmin.response.body.data.token}}
+
+### Admin - List Users
+GET {{baseUrl}}/api/users
+Authorization: Bearer {{loginAdmin.response.body.data.token}}
+
+### Admin - Update User Role/Status
+# Replace USER_ID_HERE with a real user id from list users response.
+PATCH {{baseUrl}}/api/users/f3b691c8-c2fc-48f8-a65e-4a522b053229
+Authorization: Bearer {{loginAdmin.response.body.data.token}}
+Content-Type: application/json
+
+{
+	"role": "ANALYST",
+	"isActive": true
+}
+
+### Admin - Soft Delete User
+# Replace USER_ID_HERE with a real user id from list users response.
+DELETE {{baseUrl}}/api/users/f3b691c8-c2fc-48f8-a65e-4a522b053229
+Authorization: Bearer {{loginAdmin.response.body.data.token}}
+
+### Delete Transaction
+DELETE {{baseUrl}}/api/transactions/{{createTx.response.body.data.id}}
+Authorization: Bearer {{loginAdmin.response.body.data.token}}

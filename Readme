@@ -1,0 +1,533 @@
+# Finance Data Processing and Access Control — Full Stack (Backend Focused)
+
+> **Submission by:** Bhukya Ramprakash · chitti852852@gmail.com
+> **Role Applied:** Backend Developer Intern
+
+---
+
+## What This Project Is
+
+This project is a backend system built as part of the assignment to demonstrate practical backend engineering skills, including system design, data modeling, access control, API design, and reliable data processing.
+
+The implementation focuses on:
+- Designing a clear and structured backend architecture  
+- Modeling financial data accurately  
+- Enforcing role-based access control (RBAC)  
+- Building APIs for both CRUD operations and aggregated insights  
+- Handling validation and errors consistently  
+- Maintaining clean, modular, and readable code  
+
+The system is designed not just to function correctly, but to reflect how a backend should be structured in real-world scenarios—emphasizing clarity, maintainability, and logical organization.
+
+As an additional enhancement beyond the assignment requirements, a minimal frontend was implemented to interact with the backend. This allows easier testing and visualization of features such as RBAC, transaction management, and dashboard analytics without relying solely on tools like Postman. The frontend is intended only as a supporting layer, while the primary focus remains on backend design and implementation.
+
+
+> The assignment asks for a backend. The frontend is an additional layer built to make the system tangible and testable without needing Postman — every backend feature (RBAC, validation, aggregation) is visible directly in the browser.
+
+---
+
+## Tech Stack & Why
+
+### Backend
+
+| Layer | Choice | Reason |
+|---|---|---|
+| Runtime | Node.js + Express | Lightweight, well-understood for REST APIs, excellent ecosystem |
+| Database | PostgreSQL | Financial data is relational by nature; ACID guarantees matter |
+| ORM | Prisma | Schema-as-code doubles as living documentation; migrations are version-controlled |
+| Validation | Zod | Composable schemas that are also readable documentation; errors map to field names |
+| Auth | JWT (jsonwebtoken) | Stateless, standard; no session storage needed for this scope |
+| Password hashing | bcryptjs | Cost factor 12 — production-safe balance of speed and security |
+
+**One decision I want to highlight:** I chose `Decimal` over `Float` for the `amount` field in Prisma. Float uses IEEE 754 arithmetic, which means `0.1 + 0.2 = 0.30000000000000004`. For any financial system, even at assessment scale, this is the wrong choice. `Decimal @db.Decimal(12,2)` stores exact values.
+
+### Frontend
+
+| Layer | Choice | Reason |
+|---|---|---|
+| Framework | React 18 + Vite | Component model maps cleanly to role-based UI; Vite gives instant HMR |
+| Styling | Tailwind CSS | Utility classes keep styles co-located with markup; no context switching |
+| Server state | React Query | Handles caching, loading, and error states for every API call automatically |
+| Routing | React Router v6 | Protected route + Outlet pattern mirrors the backend's RBAC structure |
+| Charts | Recharts | React-native, composable; bar and doughnut charts with minimal config |
+| HTTP client | Axios | Interceptors attach JWT headers globally and handle 401 auto-logout |
+| Forms | React Hook Form | Minimal re-renders, pairs well with native HTML validation |
+| Toasts | react-hot-toast | Lightweight feedback for create/delete/error events |
+
+---
+
+## Architecture
+
+```
+Browser (React SPA)
+  └── Axios (JWT interceptor + auto-logout on 401)
+        └── Express Router
+              ├── Auth Middleware   (JWT verification + active user check)
+              ├── RBAC Middleware   (permission string check)
+              └── Controller
+                    └── Service         (business logic)
+                          └── Repository    (all Prisma queries)
+                                └── PostgreSQL
+```
+
+**Backend layers:** Each layer has a single responsibility. Controllers handle HTTP in/out. Services contain business rules. Repositories own every database call — nothing outside the repository layer touches Prisma directly.
+
+**Frontend layers:** Pages call API functions (never Axios directly). React Query manages server state, caching, and refetch. The `RoleGuard` component mirrors the backend's RBAC — pages render a 403 view for insufficient roles without making the API call at all.
+
+---
+
+## Role & Permission Design
+
+Rather than checking role names inline (`if role === 'ADMIN'`), I built a **permission map**. Each role maps to an array of permission strings:
+
+```js
+const PERMISSIONS = {
+  ADMIN:   ['read:users', 'write:users', 'delete:users',
+            'read:transactions', 'write:transactions', 'delete:transactions',
+            'read:dashboard'],
+  ANALYST: ['read:transactions', 'read:dashboard'],
+  VIEWER:  ['read:dashboard'],
+};
+```
+
+The RBAC middleware checks these strings, not role names:
+
+```js
+export const authorize = (...required) => (req, res, next) => {
+  const userPerms = PERMISSIONS[req.user.role] ?? [];
+  const allowed   = required.every(p => userPerms.includes(p));
+  if (!allowed) return res.status(403).json({ ... });
+  next();
+};
+```
+
+**Why this matters:** Adding a new role in the future means adding one entry to the map. No route files, controllers, or service logic changes. The permission check is explicit, readable, and centralized.
+
+---
+
+## Project Structure
+
+### Backend — `finance-backend/`
+
+```
+finance-backend/
+├── prisma/
+│   ├── schema.prisma        # Single source of truth for data model
+│   ├── seed.js              # Creates 3 test users + 20 sample transactions
+│   └── migrations/          # Version-controlled DB migrations
+├── src/
+│   ├── config/
+│   │   ├── db.js            # Prisma singleton (prevents multiple connections)
+│   │   └── constants.js     # PERMISSIONS map lives here
+│   ├── middleware/
+│   │   ├── auth.middleware.js    # JWT verification
+│   │   ├── rbac.middleware.js    # Permission-based access control
+│   │   └── error.middleware.js  # Global error handler (Prisma errors + AppError)
+│   ├── utils/
+│   │   ├── response.js      # Consistent { success, data, message } shape
+│   │   ├── errors.js        # Custom error class hierarchy (AppError, NotFoundError, etc.)
+│   │   └── validators.js    # Zod schemas + validate() middleware factory
+│   ├── modules/
+│   │   ├── auth/            # register, login, /me
+│   │   ├── transactions/    # CRUD + filters + pagination
+│   │   ├── dashboard/       # Aggregation endpoints
+│   │   └── users/           # Admin user management
+│   └── app.js               # Express setup + route wiring
+├── .env.example             # Documents required environment variables
+└── README.md
+```
+
+### Frontend — `finance-frontend/`
+
+```
+finance-frontend/
+├── src/
+│   ├── api/
+│   │   ├── axios.js          # Axios instance + JWT interceptor + 401 auto-logout
+│   │   ├── auth.js           # login, register, getMe
+│   │   ├── transactions.js   # getAll (with filters), getOne, create, update, remove
+│   │   ├── dashboard.js      # getSummary
+│   │   └── users.js          # getUsers, updateUser, deleteUser
+│   ├── components/
+│   │   ├── Layout.jsx        # Sidebar + Outlet shell; nav filtered by role
+│   │   ├── ProtectedRoute.jsx # Redirects to /login if no token
+│   │   ├── RoleGuard.jsx     # Renders 403 view for insufficient role
+│   │   ├── StatCard.jsx      # Metric card for dashboard numbers
+│   │   ├── TransactionTable.jsx  # Reusable table rows component
+│   │   ├── TransactionModal.jsx  # Create transaction modal (Admin only)
+│   │   └── LoadingSpinner.jsx
+│   ├── pages/
+│   │   ├── Login.jsx         # Auth form + quick-login buttons
+│   │   ├── Register.jsx
+│   │   ├── Dashboard.jsx     # Stats + bar chart + doughnut + recent activity
+│   │   ├── Transactions.jsx  # Paginated table + filters + role-gated actions
+│   │   └── Users.jsx         # User cards + role change + activate/deactivate
+│   ├── store/
+│   │   └── authStore.js      # React Context auth state (token + user)
+│   ├── hooks/
+│   │   └── useAuth.js        # Re-export of useAuth for cleaner imports
+│   ├── utils/
+│   │   └── formatters.js     # formatCurrency, formatDate, formatMonth
+│   ├── App.jsx               # Router + QueryClient + AuthProvider + Toaster
+│   └── main.jsx
+├── .env                      # VITE_API_URL (not committed)
+├── .env.example
+└── vite.config.js            # Dev proxy: /api → localhost:3000
+```
+
+---
+
+## Data Model
+
+```prisma
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  password     String
+  name         String
+  role         Role          @default(VIEWER)
+  isActive     Boolean       @default(true)
+  transactions Transaction[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime?     // soft delete
+}
+
+model Transaction {
+  id        String          @id @default(uuid())
+  amount    Decimal         @db.Decimal(12, 2)   // not Float — intentional
+  type      TransactionType
+  category  String
+  date      DateTime
+  notes     String?
+  userId    String
+  user      User            @relation(fields: [userId], references: [id])
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  deletedAt DateTime?       // soft delete
+}
+```
+
+---
+
+## Setup & Running
+
+### Prerequisites
+
+- Node.js 18+
+- PostgreSQL 14+ (or Docker)
+
+### Backend Setup
+
+```bash
+# 1. Clone and install
+git clone <repo-url>
+cd finance-backend
+npm install
+
+# 2. Configure environment
+cp .env.example .env
+# Fill in DATABASE_URL and JWT_SECRET in .env
+
+# 3. Start PostgreSQL (Docker option)
+docker run --name financedb \
+  -e POSTGRES_PASSWORD=yourpassword \
+  -e POSTGRES_DB=financedb \
+  -p 5432:5432 -d postgres:15
+
+# 4. Run migrations
+npx prisma migrate dev
+
+# 5. Seed test data
+node prisma/seed.js
+
+# 6. Start the backend server
+npm run dev
+```
+
+Backend runs at `http://localhost:3000`
+
+Verify: `GET /health` → `{ "status": "ok" }`
+
+### Frontend Setup
+
+```bash
+# In a second terminal
+cd finance-frontend
+npm install
+
+# Configure environment
+cp .env.example .env
+# VITE_API_URL is already set to http://localhost:3000/api — no change needed
+
+# Start the dev server
+npm run dev
+```
+
+Frontend runs at `http://localhost:5173`
+
+> Both servers must be running simultaneously. Keep two terminal tabs open in VS Code.
+
+### Test Credentials (after seed)
+
+| Email | Password | Role | Access |
+|---|---|---|---|
+| admin@finance.com | Password123! | ADMIN | Dashboard + Transactions (read/write) + Users |
+| analyst@finance.com | Password123! | ANALYST | Dashboard + Transactions (read only) |
+| viewer@finance.com | Password123! | VIEWER | Dashboard summary only |
+
+---
+
+## API Reference
+
+### Auth
+
+```
+POST   /api/auth/register    Create account
+POST   /api/auth/login       Get JWT token
+GET    /api/auth/me          Current user info (requires token)
+```
+
+### Transactions
+
+```
+GET    /api/transactions                           List with pagination + filters (ANALYST, ADMIN)
+GET    /api/transactions/:id                       Single record (ANALYST, ADMIN)
+POST   /api/transactions                           Create record (ADMIN only)
+PATCH  /api/transactions/:id                       Update record (ADMIN only)
+DELETE /api/transactions/:id                       Soft delete (ADMIN only)
+```
+
+**Supported query filters:**
+```
+?type=INCOME|EXPENSE
+?category=Salary
+?startDate=2024-01-01T00:00:00Z
+?endDate=2024-12-31T00:00:00Z
+?page=1&limit=10
+```
+
+### Dashboard
+
+```
+GET    /api/dashboard/summary    Aggregated analytics (all authenticated roles)
+```
+
+Response includes: `totalIncome`, `totalExpenses`, `netBalance`, `categoryBreakdown`, `recentActivity`, `monthlyTrends`
+
+### Users (Admin only)
+
+```
+GET    /api/users           List all users
+PATCH  /api/users/:id       Update role or active status
+DELETE /api/users/:id       Soft deactivate user
+```
+
+---
+
+## Dashboard Aggregation — How It Works
+
+The summary endpoint runs five queries in parallel using `Promise.all`:
+
+```js
+const [incomeAgg, expenseAgg, byCategory, recentActivity, monthlyTrends] =
+  await Promise.all([
+    prisma.transaction.aggregate({ where: { ...where, type: 'INCOME' }, _sum: { amount: true } }),
+    prisma.transaction.aggregate({ where: { ...where, type: 'EXPENSE' }, _sum: { amount: true } }),
+    prisma.transaction.groupBy({ by: ['category', 'type'], _sum: { amount: true }, ... }),
+    prisma.transaction.findMany({ take: 10, orderBy: { date: 'desc' }, ... }),
+    prisma.$queryRaw`SELECT TO_CHAR(DATE_TRUNC('month', date), 'YYYY-MM') AS month ...`
+  ]);
+```
+
+`Promise.all` was a deliberate choice here. These five queries are independent — running them sequentially would be wasted latency. Running them in parallel cuts response time to the slowest single query.
+
+The monthly trend query uses raw SQL because Prisma's `groupBy` does not support date truncation. This is the only place raw SQL appears in the codebase — everywhere else Prisma handles queries cleanly.
+
+---
+
+## Validation & Error Handling
+
+Every request body is validated against a Zod schema before reaching the controller:
+
+```js
+export const transactionSchema = z.object({
+  amount:   z.number().positive('Amount must be positive'),
+  type:     z.enum(['INCOME', 'EXPENSE']),
+  category: z.string().min(1).max(50),
+  date:     z.string().datetime('Use ISO 8601 format'),
+  notes:    z.string().max(500).optional(),
+});
+```
+
+A `validate()` middleware factory parses and coerces the input, returning structured errors on failure:
+
+```json
+{
+  "success": false,
+  "error": "Validation failed",
+  "details": [
+    { "field": "amount", "message": "Amount must be positive" }
+  ]
+}
+```
+
+All responses follow a consistent shape:
+- **Success:** `{ success: true, message, data }`
+- **Error:** `{ success: false, error, details? }`
+
+The global error handler catches Prisma-specific error codes (`P2002` for duplicate, `P2025` for not found) and maps them to meaningful HTTP responses without leaking internal details.
+
+---
+
+## Soft Delete
+
+Records (both users and transactions) are never permanently deleted. A `deletedAt` timestamp is set instead:
+
+```js
+// soft delete
+prisma.transaction.update({
+  where: { id },
+  data:  { deletedAt: new Date() }
+});
+
+// all read queries filter it out automatically
+prisma.transaction.findMany({
+  where: { deletedAt: null, ...otherFilters }
+});
+```
+
+This was a deliberate design choice. Financial records should be auditable. Hard deletes in a finance context are a red flag.
+
+---
+
+## Assumptions Made
+
+- **Role is passed at registration.** In a real system, only existing admins could promote users. For this assessment, role is set on account creation for easier testing.
+- **No refresh tokens.** JWT expiry handles session lifetime. Acceptable for assessment scope; in production I would add a refresh token rotation strategy.
+- **Single-user ownership on transactions.** Transactions are linked to the user who created them. A multi-team or multi-entity model would require a separate `Account` or `Organization` layer.
+- **No rate limiting.** Would add `express-rate-limit` in production, particularly on the `/auth/login` endpoint.
+
+---
+
+## Tradeoffs
+
+| Decision | What I chose | What I traded off |
+|---|---|---|
+| ORM vs raw SQL | Prisma for all queries | Raw SQL only for monthly trend (date truncation not supported in groupBy) |
+| JWT vs sessions | Stateless JWT | Cannot invalidate individual tokens without a token blocklist |
+| Soft delete | `deletedAt` on all models | Slightly more complex queries; storage grows over time |
+| Flat RBAC | Permission string map | Not suitable for multi-tenant or attribute-based access control at larger scale |
+| No test suite | Not included | Would add Jest + Supertest for route integration tests as next step |
+
+---
+
+## What I Would Add Next
+
+If this were moving toward production:
+
+1. **Refresh token rotation** — short-lived access tokens + long-lived refresh tokens in httpOnly cookies
+2. **Integration tests** — Jest + Supertest covering auth flow, RBAC enforcement, and validation edge cases
+3. **Rate limiting** — `express-rate-limit` on auth endpoints
+4. **Audit log** — append-only table recording who changed what and when
+5. **Multi-tenancy** — `Organization` model so multiple teams can share one instance with data isolation
+
+---
+
+## Notes on Approach
+
+I treated this assignment the same way I would approach a real task on a team: understand the domain first, make deliberate decisions, document the reasoning, and build something I could confidently hand off to another engineer.
+
+The permission map design, the use of `Decimal` for financial amounts, the parallel dashboard queries, and the consistent response shape are all choices I would defend in a code review. The tradeoffs section above documents where I made conscious cuts for scope and what I would revisit with more time.
+
+The codebase is intentionally sized — four focused modules, one clear responsibility per layer, no unnecessary abstractions.
+
+---
+
+## Frontend — Pages & Features
+
+### Login / Register
+- Email + password form with client-side validation
+- Quick-login buttons for all three seeded roles — one click to test any permission level
+- JWT token stored in `localStorage`; user object stored alongside it so name and role survive page refresh
+- Axios response interceptor auto-clears auth and redirects to `/login` on any `401` response — expired tokens are handled transparently
+
+### Dashboard (all authenticated roles)
+- **4 stat cards:** Total Income, Total Expenses, Net Balance (green/red based on sign), Transaction Count
+- **Bar chart:** Last 6 months of income vs expense side-by-side — built from the `monthlyTrends` array in the summary response
+- **Doughnut chart:** Top 7 categories by total amount — built from `categoryBreakdown`
+- **Recent activity table:** Last 10 transactions with type badges and formatted currency
+
+### Transactions (ANALYST + ADMIN)
+- Paginated table (10 per page) with Prev/Next controls
+- Filter by type (INCOME / EXPENSE) and category text search — filters call the backend, not client-side filtering
+- **Create button visible to ADMIN only** — opens a modal form with amount, type, category, date, notes
+- **Delete button visible to ADMIN only** — soft deletes via `DELETE /api/transactions/:id`
+- VIEWER role sees a 403 message without ever reaching the API
+
+### Users (ADMIN only)
+- User cards showing name, email, role badge, and active/inactive status
+- Inline role change dropdown — fires `PATCH /api/users/:id` immediately on change
+- Activate / Deactivate toggle — changes `isActive` field via the same PATCH endpoint
+- ANALYST and VIEWER roles see a 403 message
+
+---
+
+## Frontend — Key Design Decisions
+
+**API layer is isolated in `src/api/`.** Pages never call Axios directly — they call named functions like `getAll(filters)` or `create(data)`. This means the HTTP implementation can change without touching any page component.
+
+**React Query manages all server state.** Loading states, error states, and cache invalidation are handled by the library, not manually with `useState` + `useEffect`. When a transaction is deleted, `qc.invalidateQueries(['transactions'])` refetches the list automatically — no manual state mutation.
+
+**`RoleGuard` mirrors backend RBAC on the client.** The component receives an array of allowed roles and renders either the page content or a 403 view. This is not a security measure (security lives on the backend) — it is a UX measure so users never see broken states or empty pages from 403 API responses.
+
+**Vite proxy eliminates CORS in development.** Requests to `/api/*` in the browser are forwarded to `http://localhost:3000` by Vite's dev server. This avoids needing `cors()` configuration during development and mirrors how a reverse proxy would work in production.
+
+---
+
+## Frontend — Assumptions Made
+
+- **No refresh token flow on the frontend.** When the JWT expires, the Axios interceptor clears storage and redirects to login. Acceptable for assessment scope.
+- **No client-side Zod validation.** React Hook Form's built-in validation handles required fields and basic types. Full Zod integration would be the next step for consistency with the backend schemas.
+- **`localStorage` for token storage.** `httpOnly` cookies would be more secure against XSS in production. Using `localStorage` keeps the implementation simple and avoids needing backend cookie configuration for this assessment.
+- **No loading skeleton UI.** A spinner covers loading states. Production would use skeleton placeholders for perceived performance.
+
+---
+
+## Tradeoffs
+
+| Decision | What I chose | What I traded off |
+|---|---|---|
+| ORM vs raw SQL | Prisma for all queries | Raw SQL only for monthly trend (date truncation not supported in groupBy) |
+| JWT vs sessions | Stateless JWT | Cannot invalidate individual tokens without a token blocklist |
+| Soft delete | `deletedAt` on all models | Slightly more complex queries; storage grows over time |
+| Flat RBAC | Permission string map | Not suitable for multi-tenant or attribute-based access control at larger scale |
+| No test suite | Not included | Would add Jest + Supertest (backend) and React Testing Library (frontend) as next step |
+| localStorage vs httpOnly cookies | localStorage (frontend) | Simpler setup for assessment; cookies are more secure in production |
+| React Query vs SWR | React Query | More feature-complete; better devtools; same mental model as the backend's service layer |
+
+---
+
+## What I Would Add Next
+
+If this were moving toward production:
+
+1. **Refresh token rotation** — short-lived access tokens + long-lived refresh tokens in httpOnly cookies
+2. **Integration tests** — Jest + Supertest covering auth flow, RBAC enforcement, and validation edge cases
+3. **React Testing Library** — component tests for RoleGuard, TransactionModal, and the auth store
+4. **Rate limiting** — `express-rate-limit` on auth endpoints
+5. **Audit log** — append-only table recording who changed what and when
+6. **Multi-tenancy** — `Organization` model so multiple teams can share one instance with data isolation
+7. **Date range filter on Dashboard** — the backend already supports `startDate`/`endDate` query params; the frontend just needs a date picker wired to the query
+
+---
+
+## Notes on Approach
+
+I treated this assignment the same way I would approach a real task on a team: understand the domain first, make deliberate decisions, document the reasoning, and build something I could confidently hand off to another engineer.
+
+The permission map design, the use of `Decimal` for financial amounts, the parallel dashboard queries, and the consistent response shape are all backend choices I would defend in a code review.
+
+On the frontend, the separation of the API layer, the use of React Query for server state, and the `RoleGuard` component that mirrors backend RBAC are choices that show the same thinking applied to a different layer.
+
+The tradeoffs section documents where I made conscious cuts for scope and what I would revisit with more time. The codebase is intentionally sized — four focused backend modules and five focused frontend pages, one clear responsibility per layer, no unnecessary abstractions.
