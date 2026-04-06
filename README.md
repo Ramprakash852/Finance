@@ -26,6 +26,16 @@ As an additional enhancement beyond the assignment requirements, a minimal front
 
 ---
 
+## API Reference
+
+## API Documentation
+
+Full API documentation with request examples and expected responses is available here:
+
+[View Here](https://documenter.getpostman.com/view/40958488/2sBXiqFpB1)
+
+---
+
 ## Tech Stack & Why
 
 ### Backend
@@ -277,8 +287,6 @@ Frontend runs at `http://localhost:5173`
 | viewer@finance.com | Password123! | VIEWER | Dashboard summary only |
 
 ---
-
-## API Reference
 
 ### Auth
 
